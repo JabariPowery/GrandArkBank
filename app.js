@@ -43,7 +43,7 @@ client.on(Events.InteractionCreate, async interaction => {
     if (commandName === 'balance') {
         const target = interaction.options.getUser('user') ?? interaction.user;
 
-        return interaction.reply(`${target.tag} has ${getBalance(target.id)} Dollas`);
+        return interaction.reply({ content: `${target.tag} has ${getBalance(target.id)} Dollas`, ephemeral: true});
     } 
     else if (commandName === 'inventory') {
         const target = interaction.options.getUser('user') ?? interaction.user;
@@ -52,20 +52,41 @@ client.on(Events.InteractionCreate, async interaction => {
 
         if (!items.length) return interaction.reply(`${target.tag} is broke!`);
 
-        return interaction.reply(`${target.tag} currently has: ${items.map(i => `${i.amount} ${i.item.name}`).join(', ')}`);
+        return interaction.reply({content: `${target.tag} currently has: ${items.map(i => `${i.amount} ${i.item.name}`).join(', ')}`, ephemeral: true});
     }
     else if (commandName === 'transfer') {
         const currentAmount = getBalance(interaction.user.id);
         const transferAmount = interaction.options.getInteger('amount');
         const transferTarget = interaction.options.getUser('user');
 
-        if (transferAmount > currentAmount) return interaction.reply(`Sorry ${interaction.user}, you are trying to give more than you own (${currentAmount} Dollas). Cops are on the way.`);
-        if (transferAmount <= 0) return interaction.reply(`Please enter an amount greater than zero, ${interaction.user}.`);
+        if (transferAmount > currentAmount) return interaction.reply({content: `Sorry ${interaction.user}, you are trying to give more than you own (${currentAmount} Dollas). Cops are on the way.`, ephemeral: true});
+        if (transferAmount <= 0) return interaction.reply({ content: `Please enter an amount greater than zero, ${interaction.user}.`, ephemeral: true});
 
         addBalance(interaction.user.id, -transferAmount);
         addBalance(transferTarget.id, transferAmount);
 
-        return interaction.reply(`Successfully transferred ${transferAmount} Dollas to ${transferTarget.tag}. Your current balance is ${getBalance(interaction.user.id)} Dollas`);
+        transferTarget.send(`You have received ${transferAmount} Dollas from ${interaction.user.tag}`);
+        return interaction.reply({ content: `Successfully transferred ${transferAmount} Dollas to ${transferTarget.tag}. Your current balance is ${getBalance(interaction.user.id)} Dollas`, ephemeral: true});
+    }
+    else if (commandName === 'givemoney') {
+        const giveAmount = interaction.options.getInteger('amount');
+        const giveTarget = interaction.options.getUser('user');
+
+        addBalance(giveTarget.id, giveAmount);
+        
+        if (giveTarget.id === interaction.user.id) return interaction.reply({ content: `Successfully transferred ${giveAmount} Dollas to yourself. Your current balance is now ${getBalance(interaction.user.id)}.`, ephemeral: true});
+
+        return interaction.reply({ content: `Successfully transferred ${giveAmount} Dollas to ${giveTarget.tag}.`, ephemeral: true});
+    }
+    else if (commandName === 'removemoney') {
+        const removeAmount = interaction.options.getInteger('amount');
+        const removeTarget = interaction.options.getUser('user');
+
+        addBalance(removeTarget.id, -removeAmount);
+
+        if (removeTarget.id === interaction.user.id) return interaction.reply({ content: `Successfully removed ${removeAmount} Dollas from yourself. Your current balance is now ${getBalance(interaction.user.id)}.`, ephemeral: true});
+
+        return interaction.reply({ content: `Successfully removed ${removeAmount} Dollas from ${removeTarget.tag}.`, ephemeral: true});
     }
     else if (commandName === 'buy') {
         const itemName = interaction.options.getString('item');
@@ -73,18 +94,18 @@ client.on(Events.InteractionCreate, async interaction => {
 
         if (!item) return interaction.reply(`That item doesn't exist.`);
         if (item.cost > getBalance(interaction.user.id)) {
-            return interaction.reply(`You WISH, get your money up. You have ${getBalance(interaction.user.id)}, but the ${item.name} costs ${item.cost} Dollas!`);
+            return interaction.reply({ content: `You WISH, get your money up. You have ${getBalance(interaction.user.id)}, but the ${item.name} costs ${item.cost} Dollas!`, ephemeral: true});
         }
 
         const user = await Users.findOne({ where: { user_id: interaction.user.id } });
         addBalance(interaction.user.id, -item.cost);
         await user.addItem(item);
 
-        return interaction.reply(`You've bought: ${item.name}.`);
+        return interaction.reply({content: `You've bought: ${item.name}.`, ephemeral: true});
     }
     else if (commandName === 'shop') {
         const items = await CurrencyShop.findAll();
-        return interaction.reply(codeBlock(items.map(i => `${i.name}: ${i.cost} Dollas`).join('\n')));
+        return interaction.reply({ content: codeBlock(items.map(i => `${i.name}: ${i.cost} Dollas`).join('\n')), ephemeral: true });
     }
     else if (commandName === 'leaderboard') {
         return interaction.reply(

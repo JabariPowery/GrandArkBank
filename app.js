@@ -113,7 +113,7 @@ client.on(Events.InteractionCreate, async interaction => {
                 currency.sort((a, b) => b.balance - a.balance)
                     .filter(user => client.users.cache.has(user.user_id))
                     .first(10)
-                    .map((user, position) => `${position + 1}. ${(cleint.users.cache.get(user.user_id).tag)}: ${user.balance} Dollas`)
+                    .map((user, position) => `${position + 1}. ${(client.users.cache.get(user.user_id).tag)}: ${user.balance} Dollas`)
                     .join('\n'),
             ),
         );
